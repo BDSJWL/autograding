@@ -3,6 +3,7 @@ import numpy as np
 import requests
 import pytest
 import datetime
+import inspect
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
@@ -125,4 +126,62 @@ def submit(result):
     _values.append(result)
     if os.environ["MUGRADE_OP"] == "submit":
         submit_test()
+
+
+
+### function decorators to use within a notebook
+
+def local_tests(obj):
+    print(f"Mugrade: Running local tests for function {obj.__name__}():...")
+    print("test_" + obj.__name__)
+    caller_locals = inspect.currentframe().f_back.f_locals
+    test_func = caller_locals.get("test_" + obj.__name__)
+    if test_func is None:
+        print("ERROR: No test function found")
+        return obj
+    test_func(obj)
+    print("PASSED")
+    return obj
+
+
+def submit_tests(obj):
+    print("Mugrade: Submitting tests for function {}():".format(obj.__name__))
+    caller_locals = inspect.currentframe().f_back.f_locals
+    test_func = caller_locals.get("submit_" + obj.__name__)
+    if test_func is None:
+        print("ERROR: No submission function found")
+        return obj
+
+    #os.environ["MUGRADE_HW"] = hw
+    #os.environ["MUGRADE_KEY"] = user_key
+    os.environ["MUGRADE_OP"] = "submit"
+
+    global _values, _submission_id, _errors
+    _values = []
+    _errors = 0
+    _submission_id = start_submission(obj.__name__)
+
+    test_func(obj)
+    return obj
+
+
+
+def publish_tests(obj):
+    print("Mugrade: Submitting tests for function {}():".format(obj.__name__))
+    caller_locals = inspect.currentframe().f_back.f_locals
+    test_func = caller_locals.get("submit_" + obj.__name__)
+    if test_func is None:
+        print("ERROR: No test function found")
+        return obj
+
+    #os.environ["MUGRADE_KEY"] = user_key
+    os.environ["MUGRADE_OP"] = "publish"
+
+    global _values
+    _values = []
+
+    print("Publishing tests for function {}():".format(obj.__name__))
+    test_func(obj)
+    publish(obj.__name__)
+    return obj
 
