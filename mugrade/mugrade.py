@@ -131,11 +131,19 @@ def submit(result):
 
 ### function decorators to use within a notebook
 
+def get_function(name):
+    """ Look for a specific function in the full execution stack. """
+    frame = inspect.currentframe()
+    while frame is not None:
+        func = frame.f_locals.get(name)
+        if func is not None:
+            return func
+        frame = frame.f_back
+    return None
+
 def local_tests(obj):
     print(f"Mugrade: Running local tests for function {obj.__name__}():...")
-    print("test_" + obj.__name__)
-    caller_locals = inspect.currentframe().f_back.f_locals
-    test_func = caller_locals.get("test_" + obj.__name__)
+    test_func = get_function("test_" + obj.__name__)
     if test_func is None:
         print("ERROR: No test function found")
         return obj
@@ -146,8 +154,7 @@ def local_tests(obj):
 
 def submit_tests(obj):
     print("Mugrade: Submitting tests for function {}():".format(obj.__name__))
-    caller_locals = inspect.currentframe().f_back.f_locals
-    test_func = caller_locals.get("submit_" + obj.__name__)
+    test_func = get_function("submit_" + obj.__name__)
     if test_func is None:
         print("ERROR: No submission function found")
         return obj
@@ -168,10 +175,9 @@ def submit_tests(obj):
 
 def publish_tests(obj):
     print("Mugrade: Submitting tests for function {}():".format(obj.__name__))
-    caller_locals = inspect.currentframe().f_back.f_locals
-    test_func = caller_locals.get("submit_" + obj.__name__)
+    test_func = get_function("submit_" + obj.__name__)
     if test_func is None:
-        print("ERROR: No test function found")
+        print("ERROR: No submission function found")
         return obj
 
     #os.environ["MUGRADE_KEY"] = user_key
